@@ -36,6 +36,11 @@ func main() {
 			})
 		},
 	})
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*", // Allows any frontend to connect
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE",
+	}))
 
 	// 3. Mount standard global architectural middleware
 	app.Use(recover.New()) // Recovers from runtime panics without crashing the entire system
