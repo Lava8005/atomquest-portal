@@ -1,6 +1,6 @@
 // frontend/src/api.ts
 
-const API_BASE_URL = 'http://localhost:8081/api/v1';
+const API_BASE_URL = 'https://atomquest-portal-w7cw.onrender.com';
 
 // Helper to grab the token saved by your auth.ts script
 const getToken = () => localStorage.getItem('jwt_token');
