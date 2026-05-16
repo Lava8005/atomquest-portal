@@ -1,0 +1,12 @@
+# Node & Frontend
+node_modules/
+dist/
+.env
+
+# Go Backend
+backend/server
+backend/*.exe
+backend/main
+
+# OS Files
+.DS_Store

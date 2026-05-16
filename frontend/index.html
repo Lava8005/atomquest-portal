@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise Goal Tracking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+          },
+          colors: {
+            brand: {
+              bg:       '#F4F5F7', /* Jira app background */
+              surface:  '#FFFFFF', /* Card background */
+              primary:  '#0052CC', /* Classic Jira Blue */
+              hover:    '#0065FF',
+              text:     '#172B4D', /* Deep navy/gray text */
+              subtext:  '#5E6C84', /* Muted text */
+              border:   '#DFE1E6', /* Light gray borders */
+              success:  '#00875A',
+              warning:  '#FF991F',
+              danger:   '#DE350B',
+            }
+          },
+          boxShadow: {
+            'card': '0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F4F5F7;
+      color: #172B4D;
+      min-height: 100vh;
+    }
+
+    /* Enterprise Inputs */
+    .input-field {
+      background: #FAFBFC;
+      border: 2px solid #DFE1E6;
+      color: #172B4D;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 14px;
+      width: 100%;
+      transition: background-color 0.2s, border-color 0.2s;
+      outline: none;
+    }
+    .input-field:hover { background: #EBECF0; }
+    .input-field:focus {
+      background: #FFFFFF;
+      border-color: #4C9AFF;
+    }
+    .input-field::placeholder { color: #7A869A; }
+
+    /* Buttons */
+    .btn-primary {
+      background: #0052CC;
+      color: #FFFFFF;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover:not(:disabled) { background: #0065FF; }
+    .btn-primary:disabled { background: #091E4208; color: #A5ADBA; cursor: not-allowed; }
+    
+    .btn-secondary {
+      background: #091E420A;
+      color: #42526E;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: #091E4214; }
+
+    .btn-danger {
+      background: transparent;
+      color: #5E6C84;
+      border: none;
+      border-radius: 3px;
+      padding: 4px 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-danger:hover { background: #FFEBE6; color: #DE350B; }
+
+    /* Tags & Badges */
+    .tag {
+      display: inline-flex; align-items: center; font-size: 11px; font-weight: 700;
+      padding: 2px 6px; border-radius: 3px; text-transform: uppercase;
+    }
+    
+    /* Phase Tabs */
+    .phase-tab { 
+      padding: 12px 0; margin-right: 32px; cursor: pointer; font-weight: 600;
+      font-size: 14px; border-bottom: 2px solid transparent; color: #5E6C84; 
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .phase-tab.active { color: #0052CC; border-color: #0052CC; }
+    .phase-tab:not(.active):hover { color: #172B4D; border-color: #C1C7D0; }
+
+    /* Tables & Rows */
+    .goal-row { 
+      display: grid; grid-template-columns: 1.6fr 2fr 1fr 1fr 1fr auto; gap: 16px; 
+      align-items: center; padding: 12px 0; border-bottom: 1px solid #DFE1E6; 
+    }
+    .goal-row:last-child { border-bottom: none; }
+
+    .progress-track { height: 8px; background: #EBECF0; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; background: #0052CC; transition: width 0.4s ease; }
+    .progress-fill.danger { background: #DE350B; }
+    .progress-fill.success { background: #00875A; }
+
+    .p2-table { width: 100%; border-collapse: collapse; }
+    .p2-table th { 
+      font-size: 12px; font-weight: 600; color: #5E6C84; padding: 12px 16px; 
+      border-bottom: 2px solid #DFE1E6; text-align: left; 
+    }
+    .p2-table td { padding: 12px 16px; border-bottom: 1px solid #DFE1E6; font-size: 14px; }
+    .p2-table tr:hover td { background: #FAFBFC; }
+    
+    .p2-input { 
+      background: #FFFFFF; border: 2px solid #DFE1E6; color: #172B4D; 
+      border-radius: 3px; padding: 6px; font-size: 13px; width: 70px; text-align: center; 
+      outline: none; transition: border-color 0.2s;
+    }
+    .p2-input:focus { border-color: #4C9AFF; }
+
+    /* Status Badges */
+    .ach-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .ach-badge.exceeded  { background: #E3FCEF; color: #006644; }
+    .ach-badge.ontrack   { background: #E6FCFF; color: #0065FF; }
+    .ach-badge.lagging   { background: #FFEBE6; color: #BF2600; }
+    .ach-badge.pending   { background: #EBECF0; color: #42526E; }
+
+    /* Toasts */
+    .toast { 
+      position: fixed; bottom: 32px; left: 32px; z-index: 1000; 
+      padding: 16px 20px; border-radius: 3px; font-size: 14px; font-weight: 500;
+      display: flex; align-items: center; gap: 12px; 
+      box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31); 
+    }
+    .toast.success { background: #E3FCEF; border-left: 4px solid #00875A; color: #172B4D; }
+    .toast.error   { background: #FFEBE6; border-left: 4px solid #DE350B; color: #172B4D; }
+    .toast.info    { background: #DEEBFF; border-left: 4px solid #0052CC; color: #172B4D; }
+  </style>
+</head>
+
+<body>
+
+  <div id="login-screen" class="fixed inset-0 z-[100] bg-brand-bg flex flex-col items-center justify-center">
+    <div class="bg-brand-surface shadow-card rounded-lg p-10 max-w-md w-full border border-brand-border text-center">
+      <div class="w-12 h-12 rounded bg-brand-primary flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">O</div>
+      <h1 class="font-bold text-brand-text text-2xl mb-2">Objective Core</h1>
+      <p class="text-brand-subtext text-sm mb-8">Enterprise Goal & Performance Tracking</p>
+      
+      <button id="sso-login-btn-main" class="btn-primary w-full py-3 text-base flex justify-center items-center gap-2">
+        Log in with Microsoft SSO
+      </button>
+      <p class="text-xs text-brand-subtext mt-6">Authorized personnel only.</p>
+    </div>
+  </div>
+
+  <div id="app-dashboard" class="hidden">
+    <header class="bg-brand-surface shadow-card sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded bg-brand-primary flex items-center justify-center text-white font-bold">O</div>
+            <h1 class="font-bold text-brand-text text-lg">Objective Core</h1>
+          </div>
+          <nav class="hidden md:flex gap-4">
+            <a href="#" class="text-brand-primary font-medium text-sm px-2 py-1 bg-blue-50 rounded">Your Work</a>
+          </nav>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-brand-primary font-bold text-sm">AK</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-8 py-8">
+      
+      <div class="mb-6">
+        <div class="text-brand-subtext text-sm mb-2">Performance Cycle / FY 2024-25</div>
+        <h2 class="text-2xl font-bold text-brand-text">Goal Setting & Tracking</h2>
+      </div>
+
+      <div class="bg-brand-surface shadow-card rounded-md p-5 flex flex-wrap gap-8 items-center mb-8 border border-brand-border/50">
+        <div>
+          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Employee</p>
+          <p class="text-brand-text font-medium">Arjun Kumar</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Department</p>
+          <p class="text-brand-text font-medium">Engineering & Technology</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Role</p>
+          <p class="text-brand-text font-medium">Senior Engineer</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Manager</p>
+          <p class="text-brand-text font-medium">R. Sharma</p>
+        </div>
+        <div class="ml-auto">
+          <span class="tag bg-gray-100 text-gray-600 border border-gray-200">Draft Status</span>
+        </div>
+      </div>
+
+      <div class="flex border-b border-brand-border mb-6">
+        <div class="phase-tab active" id="tab-phase1" onclick="switchTab('phase1')">Phase 1: Goal Sheet</div>
+        <div class="phase-tab" id="tab-phase2" onclick="switchTab('phase2')">Phase 2: Check-ins</div>
+      </div>
+
+      <div id="panel-phase1">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          
+          <div class="lg:col-span-2">
+            <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 overflow-hidden">
+              <div class="px-6 py-4 border-b border-brand-border bg-gray-50/50">
+                <h3 class="font-bold text-brand-text">Create Objective</h3>
+              </div>
+              <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label class="block text-xs font-bold text-brand-subtext mb-1">Thrust Area</label>
+                    <select id="inp-thrust" class="input-field">
+                      <option value="">Select Area</option>
+                      <option>Business Development</option>
+                      <option>Technical Excellence</option>
+                      <option>Process Improvement</option>
+                      <option>People Development</option>
+                      <option>Innovation & R&D</option>
+                      <option>Customer Satisfaction</option>
+                      <option>Cost Optimization</option>
+                      <option>Compliance & Safety</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-brand-subtext mb-1">Goal Title</label>
+                    <input id="inp-title" type="text" placeholder="What do you want to achieve?" class="input-field" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <label class="block text-xs font-bold text-brand-subtext mb-1">Unit of Measure</label>
+                    <select id="inp-uom" class="input-field">
+                      <option value="">Select UoM</option>
+                      <option value="Numeric">Numeric</option>
+                      <option value="%">% (Percentage)</option>
+                      <option value="Timeline">Timeline (Days)</option>
+                      <option value="Zero-based">Zero-based</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-brand-subtext mb-1">Target Value</label>
+                    <input id="inp-target" type="number" placeholder="0" class="input-field" min="0" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-brand-subtext mb-1">Weightage (%)</label>
+                    <input id="inp-weight" type="number" placeholder="Min 10%" class="input-field" min="10" max="100" />
+                  </div>
+                </div>
+
+                <div id="form-error" class="hidden mb-4 px-4 py-3 rounded text-sm bg-red-50 text-red-700 border border-red-200"></div>
+
+                <div class="flex justify-end">
+                  <button onclick="addGoal()" class="btn-secondary font-bold">Add to Sheet</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 p-6">
+              <h3 class="font-bold text-brand-text mb-4">Validation Status</h3>
+              
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-brand-text">Goals Added</span>
+                <span class="text-sm font-bold"><span id="goal-count-display">0</span> <span class="text-brand-subtext font-normal">/ 8</span></span>
+              </div>
+              
+              <div class="mt-6 mb-2 flex justify-between items-center">
+                <span class="text-sm text-brand-text">Total Weightage</span>
+                <span class="text-sm font-bold" id="total-weight-label">0%</span>
+              </div>
+              <div class="progress-track mb-2"><div class="progress-fill" id="weight-progress" style="width:0%"></div></div>
+              <p class="text-xs text-brand-subtext mb-6" id="weight-hint">Must equal exactly 100%</p>
+
+              <div class="pt-4 border-t border-brand-border">
+                <div class="flex items-center gap-2 mb-4">
+                  <div class="w-2 h-2 rounded-full bg-gray-400" id="status-dot"></div>
+                  <p class="text-sm font-medium text-brand-subtext" id="status-text">Incomplete</p>
+                </div>
+                <p id="submit-hint" class="text-xs text-brand-subtext mb-4">Add goals to meet criteria.</p>
+                <button id="submit-btn" onclick="submitGoals()" class="btn-primary w-full py-2" disabled>Submit Goal Sheet</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50">
+          <div class="px-6 py-4 border-b border-brand-border bg-gray-50/50 flex justify-between">
+            <h3 class="font-bold text-brand-text">Current Draft</h3>
+            <span class="text-xs text-brand-subtext" id="goals-list-header-meta"></span>
+          </div>
+          
+          <div class="p-6">
+            <div id="goals-col-header" class="hidden grid mb-2 text-xs font-bold text-brand-subtext uppercase tracking-wide px-2" style="grid-template-columns:1.6fr 2fr 1fr 1fr 1fr auto; gap:16px;">
+              <span>Thrust Area</span><span>Title</span><span>UoM</span><span>Target</span><span>Wt%</span><span></span>
+            </div>
+
+            <div id="goals-list"></div>
+
+            <div id="empty-state" class="text-center py-10">
+              <p class="text-brand-text font-medium mb-1">No goals added</p>
+              <p class="text-sm text-brand-subtext">Use the form above to add objectives to your sheet.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-phase2" class="hidden">
+        
+        <div class="bg-blue-50 border-l-4 border-brand-primary p-4 rounded-r-md mb-6 flex justify-between items-start">
+          <div>
+            <h3 class="text-brand-text font-bold text-sm">Approved Goals (Locked)</h3>
+            <p class="text-brand-subtext text-sm mt-1">Enter actual achievements below. Scores compute automatically.</p>
+          </div>
+          <button class="btn-primary" onclick="saveTracking()">Save Progress</button>
+        </div>
+
+        <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 overflow-hidden">
+          <div class="overflow-x-auto">
+            <div id="p2-empty" class="hidden text-center py-12">
+              <p class="text-brand-text font-medium">Nothing to track yet</p>
+              <p class="text-sm text-brand-subtext mt-1">Submit your goals in Phase 1 first.</p>
+            </div>
+            
+            <table class="p2-table" id="p2-table">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th>#</th><th>Thrust Area</th><th>Goal Title</th><th>UoM</th><th>Target</th><th>Wt%</th>
+                  <th class="text-center">Q1</th><th class="text-center">Q2</th><th class="text-center">Q3</th><th class="text-center">Q4</th>
+                  <th class="text-center">Score</th><th class="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="p2-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
