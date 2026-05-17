@@ -210,7 +210,15 @@
         </div>
 
         <div class="flex items-center gap-4">
+          <div class="text-right hidden sm:block">
+            <p id="header-user-display" class="text-xs font-bold text-brand-text">Arjun Kumar</p>
+            <p id="header-role-tag" class="text-[10px] font-medium text-brand-subtext uppercase tracking-wider">Employee</p>
+          </div>
           <div id="user-avatar-initials" class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-brand-primary font-bold text-sm">AK</div>
+          
+          <button onclick="signOut()" class="text-xs btn-secondary border border-brand-border px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-100 font-medium">
+            <span>🚪</span> Sign Out
+          </button>
         </div>
       </div>
     </header>
@@ -224,23 +232,23 @@
 
       <div class="bg-brand-surface shadow-card rounded-md p-5 flex flex-wrap gap-8 items-center mb-8 border border-brand-border/50">
         <div>
-          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Employee</p>
-          <p class="text-brand-text font-medium">Arjun Kumar</p>
+          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">User Identity</p>
+          <p class="text-brand-text font-medium" id="profile-name">Arjun Kumar</p>
         </div>
         <div>
           <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Department</p>
-          <p class="text-brand-text font-medium">Engineering & Technology</p>
+          <p class="text-brand-text font-medium" id="profile-dept">Engineering & Technology</p>
         </div>
         <div>
-          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Role</p>
-          <p class="text-brand-text font-medium">Senior Engineer</p>
+          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Role Persona</p>
+          <p class="text-brand-text font-medium" id="profile-role">Senior Engineer</p>
         </div>
         <div>
-          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Manager</p>
-          <p class="text-brand-text font-medium">R. Sharma</p>
+          <p class="text-xs font-bold text-brand-subtext uppercase tracking-wide mb-1">Manager Routing</p>
+          <p class="text-brand-text font-medium" id="profile-manager">R. Sharma</p>
         </div>
         <div class="ml-auto">
-          <span class="tag bg-gray-100 text-gray-600 border border-gray-200">Draft Status</span>
+          <span class="tag bg-blue-50 text-brand-primary border border-blue-200" id="profile-status-badge">Active Session</span>
         </div>
       </div>
 
@@ -396,7 +404,17 @@
             <h3 class="font-bold text-brand-text">Manager Action Center: Pending Approvals</h3>
             <button onclick="loadManagerData()" class="btn-secondary text-xs">↻ Refresh List</button>
           </div>
-          
+          <div class="mt-6 bg-brand-surface border border-brand-border rounded-md p-6 shadow-sm">
+            <h4 class="font-bold text-sm text-brand-text mb-2">Phase 2: Manager Check-in Review & Notes</h4>
+            <p class="text-xs text-brand-subtext mb-4">Submit formal feedback and performance check-in notes to accompany downstream tracking records.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-brand-subtext mb-1">Manager Feedback Comments</label>
+                <textarea id="manager-review-comment" placeholder="Enter quarterly progress feedback, adjustments, or policy updates..." class="input-field h-10 resize-none font-sans text-sm"></textarea>
+              </div>
+              <button class="btn-primary text-xs py-2 w-full h-10" style="background:#0052CC" onclick="submitManagerReview()">💾 Save Review Note</button>
+            </div>
+          </div>
           <div class="p-6">
             <table class="p2-table w-full">
               <thead class="bg-gray-50">
@@ -418,19 +436,46 @@
       </div>
 
       <div id="panel-admin" class="hidden">
-          <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 p-6 mb-6">
-            <h3 class="font-bold text-brand-text mb-4 text-lg">System Analytics & Escalations</h3>
-            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md mb-6">
-              <h4 class="text-red-700 font-bold text-sm">Escalation Triggered</h4>
-              <p class="text-red-600 text-sm mt-1">Marketing Department has 12 unapproved goal sheets. Policy mandates approval by Q1 end.</p>
+        <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 p-6 mb-6">
+          
+          <h3 class="font-bold text-brand-text mb-4 text-lg">System Analytics & Escalations</h3>
+    
+          <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md mb-6">
+            <div class="flex flex-wrap justify-between items-center gap-4">
+              <div>
+                <h4 class="text-red-700 font-bold text-sm">Governance & SLA Escalation Suite</h4>
+                <p class="text-red-600 text-sm mt-1">Scan organizational records for outstanding goal sheets breaching corporate approval deadlines.</p>
+              </div>
+              <button class="btn-primary text-xs bg-red-600 hover:bg-red-700 transition" onclick="triggerEscalations()">⚡ Scan & Fetch Real-Time Logs</button>
+            </div>
+            <div id="escalation-log-table" class="hidden mt-4 border-t border-red-200 pt-3 text-xs text-red-800 font-mono space-y-1.5 max-h-40 overflow-y-auto bg-white/50 p-2 rounded"></div>
+          </div>
+    
+          <div class="flex flex-wrap gap-3">
+            <button class="btn-primary" onclick="generateReport()">Generate Company JSON Report</button>
+            <button class="btn-secondary border border-brand-border flex items-center gap-2" onclick="exportAchievementCSV()">
+              <span>💾</span> Export Achievement Report (CSV)
+            </button>
+          </div>
+    
+          <pre id="admin-report-output" class="hidden mt-4 p-4 bg-gray-900 text-green-400 text-xs rounded-md overflow-x-auto font-mono shadow-inner border border-gray-700"></pre>
+
+          <div class="mt-6 pt-6 border-t border-brand-border/60">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></div>
+              <h4 class="font-bold text-sm text-brand-text">Corporate KPI Distribution Engine</h4>
             </div>
             
-            <button class="btn-primary" onclick="generateReport()">Generate Company JSON Report</button>
-            
-            <pre id="admin-report-output" class="hidden mt-4 p-4 bg-gray-900 text-green-400 text-xs rounded-md overflow-x-auto font-mono shadow-inner border border-gray-700"></pre>
-          </div>
-        </div>
-    </main>
+            <p class="text-xs text-brand-subtext mb-4">Broadcast mandatory operational milestones directly to downstream employee dashboards as locked objectives.</p>
+      
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-700 mb-4">
+              <span class="text-purple-700 font-bold">[Payload Target]</span> Thrust: "Technical Excellence" | Title: "Migrate legacy core services to stateless Go Fiber engines" | Target: 100% | Constraints: Read-Only
+            </div>
+      
+            <button class="btn-primary text-xs py-2" style="background: #6B46C1;" onclick="injectCorporateKPI()">
+              🚀 Broadcast Departmental KPI
+            </button>
+          </div> </div> </div> </main>
   </div>
 
   <div id="toast-container"></div>

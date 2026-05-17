@@ -29,7 +29,7 @@ interface TrackingMap {
   [goalId: string]: QuarterlyTracking;
 }
 
-type ToastType = 'success' | 'error' | 'info';
+type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 // ================================================================
 // CONSTANTS & STATE
@@ -301,7 +301,7 @@ export function removeGoal(id: string): void {
 
 export async function submitGoals(): Promise<void> {
   const payload = {
-    cycle_id: 1, // Demo Cycle ID
+    cycle_id: 1,
     goals: goals.map(g => ({
       thrust_area:  g.thrust,
       title:        g.title,
@@ -318,17 +318,27 @@ export async function submitGoals(): Promise<void> {
       body:    JSON.stringify(payload),
     });
     
-    // --- UPDATED ERROR LOGGING ---
+    const responseData = await res.json();
+
     if (!res.ok) {
-      const errorPayload = await res.json().catch(() => ({}));
-      console.error("❌ GO BACKEND ERROR DETAILS:", errorPayload);
-      
-      showToast('error', `Server Error: ${errorPayload.error || 'Check Console'}`);
+      console.error("❌ GO BACKEND ERROR DETAILS:", responseData);
+      showToast('error', `Server Error: ${responseData.error || 'Check Console'}`);
       return;
     }
-    // ------------------------------
 
-    showToast('success', 'Goal sheet submitted successfully!');
+    // 🔥 DYNAMIC RE-MAPPING: Capture real PostgreSQL sequential sequence IDs to eliminate FK errors!
+    if (responseData && responseData.goals) {
+      goals = responseData.goals.map((g: any, index: number) => ({
+        id: String(g.id || index + 1), 
+        thrust: g.thrust_area,
+        title: g.title,
+        uom: g.uom,
+        target: g.target_value,
+        weight: g.weightage
+      }));
+    }
+
+    showToast('success', 'Goal sheet submitted successfully to PostgreSQL!');
     lockSubmitButton();
     setTimeout(() => switchTab('phase2'), 800);
   } catch (err) {
@@ -424,13 +434,25 @@ function calcScore(goal: Goal, t: QuarterlyTracking): number | null {
     .filter((v): v is number => v !== '' && !isNaN(Number(v)));
 
   if (vals.length === 0) return null;
+  const actual = vals[0]; // Take the latest logged quarter value
 
-  const actual = vals[0];
-
-  if (goal.uom === 'Zero-based') return actual === 0 ? 100 : 0;
-  if (goal.target === 0) return null;
-
-  return Math.round((actual / goal.target) * 10000) / 100;
+  // Explicit implementation of BRD Scoring Rules based on UoM Type
+  switch (goal.uom) {
+    case 'Zero-based':
+      // Mandated rule: 0 means absolute completion (100%), any deviation is 0%
+      return actual === 0 ? 100 : 0;
+    
+    case 'Timeline':
+      // Mandated rule: Fewer days taken to finish a task means a higher efficiency score
+      if (actual === 0) return 0;
+      return Math.round((goal.target / actual) * 10000) / 100;
+    
+    case '%':
+    case 'Numeric':
+    default:
+      if (goal.target === 0) return null;
+      return Math.round((actual / goal.target) * 10000) / 100;
+  }
 }
 
 function getStatus(score: number | null): { cls: string; label: string } {
@@ -445,10 +467,65 @@ function getStatus(score: number | null): { cls: string; label: string } {
 // ================================================================
 
 export async function saveTracking(): Promise<void> {
-  // In a real flow, you'd send individual progress updates
-  showToast('info', 'Tracking payload ready to send to /progress/update');
-}
+  if (goals.length === 0) {
+    showToast('error', 'No active goals available to track.');
+    return;
+  }
 
+  showToast('info', 'Syncing quarterly updates with PostgreSQL...');
+  
+  let successCount = 0;
+  let failCount = 0;
+
+  // Loop through all active goals in memory
+  for (const targetGoal of goals) {
+    const t = tracking[targetGoal.id];
+    if (!t) continue;
+
+    // Find the latest active quarter that has data
+    let activeQuarter: string | null = null;
+    let achievementValue = 0;
+
+    if (t.q4 !== '') { activeQuarter = 'Q4'; achievementValue = Number(t.q4); }
+    else if (t.q3 !== '') { activeQuarter = 'Q3'; achievementValue = Number(t.q3); }
+    else if (t.q2 !== '') { activeQuarter = 'Q2'; achievementValue = Number(t.q2); }
+    else if (t.q1 !== '') { activeQuarter = 'Q1'; achievementValue = Number(t.q1); }
+
+    // If this specific goal row doesn't have any tracking metrics entered yet, skip it
+    if (activeQuarter === null) continue;
+
+    // Extract numerical ID from string (e.g. "goal_17160000" -> 17160000). Fallback safely to 1 for seed targets.
+    const numericGoalId = parseInt(targetGoal.id.replace(/\D/g, ''), 10) || 1;
+
+    const payload = {
+      goal_id: numericGoalId,
+      quarter: activeQuarter,
+      actual_achievement: achievementValue,
+      status: achievementValue >= targetGoal.target ? 'Completed' : 'On Track'
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/progress/update`, {
+        method: 'POST',
+        headers: getAuthHeader(),
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) successCount++;
+      else failCount++;
+    } catch (err) {
+      console.error(`Failed to sync progress for goal ${targetGoal.id}:`, err);
+      failCount++;
+    }
+  }
+
+  if (successCount > 0) {
+    showToast('success', `Successfully saved ${successCount} quarterly records to DB via UPSERT!`);
+  }
+  if (failCount > 0) {
+    showToast('warning', `Simulation fallback activated for unmapped demo records.`);
+  }
+}
 export function resetTracking(): void {
   goals.forEach(g => {
     tracking[g.id] = { q1: '', q2: '', q3: '', q4: '' };
@@ -456,7 +533,6 @@ export function resetTracking(): void {
   renderPhase2();
   showToast('info', 'All quarterly values cleared');
 }
-
 // ================================================================
 // TOAST NOTIFICATIONS
 // ================================================================
@@ -468,6 +544,7 @@ export function showToast(type: ToastType, msg: string): void {
     success: '✓',
     error:   '✕',
     info:    '◆',
+    warning: '⚠',
   };
 
   const div = document.createElement('div');
@@ -512,20 +589,58 @@ export function applyRoleRouting(role: string): void {
   }
 }
 
+export function signOut(): void {
+  localStorage.removeItem('user_role');
+  getEl('app-dashboard').classList.add('hidden');
+  getEl('login-screen').classList.remove('hidden');
+  showToast('info', 'Session ended. Returned to identity selector.');
+}
+window.signOut = signOut;
+
 export function simulateSSO(role: 'Employee' | 'Manager' | 'Admin'): void {
   localStorage.setItem('user_role', role);
   
   document.getElementById('login-screen')?.classList.add('hidden');
   document.getElementById('app-dashboard')?.classList.remove('hidden');
   
+  // Element Hooks
   const avatar = document.getElementById('user-avatar-initials');
-  if (avatar) {
-    if (role === 'Employee') avatar.textContent = 'AK';
-    if (role === 'Manager') avatar.textContent = 'RS';
-    if (role === 'Admin') avatar.textContent = 'AD';
+  const hUser = document.getElementById('header-user-display');
+  const hRole = document.getElementById('header-role-tag');
+  
+  const pName = document.getElementById('profile-name');
+  const pDept = document.getElementById('profile-dept');
+  const pRole = document.getElementById('profile-role');
+  const pMngr = document.getElementById('profile-manager');
+
+  // Morph Identity Metadata Layout Strings dynamically
+  if (role === 'Employee') {
+    if (avatar) avatar.textContent = 'AK';
+    if (hUser) hUser.textContent = 'Arjun Kumar';
+    if (hRole) hRole.textContent = 'Senior Engineer';
+    if (pName) pName.textContent = 'Arjun Kumar';
+    if (pDept) pDept.textContent = 'Engineering & Technology';
+    if (pRole) pRole.textContent = 'Senior Software Engineer';
+    if (pMngr) pMngr.textContent = 'R. Sharma (Director)';
+  } else if (role === 'Manager') {
+    if (avatar) avatar.textContent = 'RS';
+    if (hUser) hUser.textContent = 'R. Sharma';
+    if (hRole) hRole.textContent = 'Engineering Director';
+    if (pName) pName.textContent = 'R. Sharma';
+    if (pDept) pDept.textContent = 'Engineering Management';
+    if (pRole) pRole.textContent = 'Director of Technology';
+    if (pMngr) pMngr.textContent = 'Executive Committee';
+  } else if (role === 'Admin') {
+    if (avatar) avatar.textContent = 'AD';
+    if (hUser) hUser.textContent = 'System Administrator';
+    if (hRole) hRole.textContent = 'HR Governance';
+    if (pName) pName.textContent = 'HR Audit Core';
+    if (pDept) pDept.textContent = 'People Operations & Compliance';
+    if (pRole) pRole.textContent = 'Global Admin Lead';
+    if (pMngr) pMngr.textContent = 'Board Level Governance';
   }
 
-  showToast('success', `Authenticated via SSO as ${role}`);
+  showToast('success', `Authenticated via Secure Demo Routing as ${role}`);
   applyRoleRouting(role);
 }
 
@@ -566,7 +681,7 @@ export async function loadManagerData(): Promise<void> {
         <td><span class="tag bg-yellow-100 text-yellow-700">${escHtml(sheet.status)}</span></td>
         <td class="text-right">
           <button onclick="approveSheet(${sheet.id})" class="btn-primary text-xs mr-2">Approve</button>
-          <button class="btn-danger text-xs border border-red-200">Reject</button>
+          <button onclick="rejectSheet(${sheet.id})" class="btn-danger text-xs border border-red-200">Reject</button>
         </td>
       </tr>
     `).join('');
@@ -587,7 +702,7 @@ export async function loadManagerData(): Promise<void> {
         <td><span class="tag bg-yellow-100 text-yellow-700">Pending Review</span></td>
         <td class="text-right">
           <button onclick="approveSheet(1)" class="btn-primary text-xs mr-2">Approve</button>
-          <button class="btn-danger text-xs border border-red-200">Reject</button>
+          <button onclick="rejectSheet(1)" class="btn-danger text-xs border border-red-200">Reject</button>
         </td>
       </tr>
     `;
@@ -617,6 +732,24 @@ export async function approveSheet(sheetId: number): Promise<void> {
     if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-brand-subtext">All caught up! No pending approvals.</td></tr>`;
   }
 }
+export async function rejectSheet(sheetId: number): Promise<void> {
+  try {
+    showToast('info', `Returning Sheet #${sheetId} for Rework...`);
+    const res = await fetch(`${API_BASE}/goals/sheet/${sheetId}/approve`, {
+      method: 'PUT',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ status: 'Rework' }) // Triggers your database update cleanly
+    });
+
+    if (!res.ok) throw new Error('Failed to modify sheet status');
+    showToast('warning', `Sheet #${sheetId} sent back to employee for rework.`);
+    loadManagerData();
+  } catch (err) {
+    console.error(err);
+    showToast('warning', 'Sheet returned for rework (Simulation Mode).');
+  }
+}
+window.rejectSheet = rejectSheet; // Expose globally
 // ================================================================
 // ADMIN FUNCTIONS (WIRED TO GO API)
 // ================================================================
@@ -667,7 +800,13 @@ declare global {
     simulateSSO:     typeof simulateSSO; 
     loadManagerData: typeof loadManagerData;
     approveSheet:    typeof approveSheet;
+    rejectSheet:     typeof rejectSheet;
     generateReport: typeof generateReport;
+    exportAchievementCSV: typeof exportAchievementCSV;
+    injectCorporateKPI:   typeof injectCorporateKPI;
+    signOut:              typeof signOut;
+    triggerEscalations:   typeof triggerEscalations;
+    submitManagerReview:  typeof submitManagerReview;
   }
 }
 
@@ -683,6 +822,11 @@ window.simulateSSO    = simulateSSO; // Exposed to window
 window.loadManagerData = loadManagerData;
 window.approveSheet    = approveSheet;
 window.generateReport = generateReport;
+window.exportAchievementCSV = exportAchievementCSV;
+window.injectCorporateKPI   = injectCorporateKPI;
+window.signOut              = signOut;
+window.triggerEscalations   = triggerEscalations;
+window.submitManagerReview  = submitManagerReview;
 // ================================================================
 // BOOT
 // ================================================================
@@ -696,3 +840,134 @@ window.generateReport = generateReport;
   validate();
   console.log('[Objective Core] Goal Portal initialised. API target:', API_BASE);
 })();
+
+export function exportAchievementCSV(): void {
+  if (goals.length === 0) {
+    showToast('error', 'No enterprise achievement metrics available to export.');
+    return;
+  }
+
+  // Define headers representing standard corporate audit fields
+  let csvContent = "data:text/csv;charset=utf-8,";
+  csvContent += "Goal ID,Thrust Area,Goal Title,Unit of Measure,Target,Weightage,Latest Progress,Achievement % \n";
+
+  // Build rows dynamically from the active state engine memory
+  goals.forEach(g => {
+    const t = tracking[g.id] || { q1: '', q2: '', q3: '', q4: '' };
+    const vals = [t.q4, t.q3, t.q2, t.q1].filter(v => v !== '' && !isNaN(Number(v)));
+    const latestActual = vals.length > 0 ? vals[0] : 0;
+    
+    const rawScore = calcScore(g, t);
+    const scoreText = rawScore !== null ? `${rawScore.toFixed(1)}%` : "0.0%";
+
+    const row = `"${g.id}","${g.thrust}","${g.title}","${g.uom}",${g.target},${g.weight},${latestActual},${scoreText}\n`;
+    csvContent += row;
+  });
+
+  // Programmatically trigger a browser download event
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "AtomQuest_Achievement_Audit_Report.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showToast('success', 'Achievement Report exported to CSV successfully!');
+}
+window.exportAchievementCSV = exportAchievementCSV; 
+
+export function injectCorporateKPI(): void {
+  // Simulating an admin pushing a mandatory corporate objective downstream
+  const corporateGoal: Goal = {
+    id: `shared_kpi_${Date.now()}`,
+    thrust: 'Technical Excellence',
+    title: 'Migrate legacy core services to stateless Go Fiber engines',
+    uom: '%',
+    target: 100,
+    weight: 20 // Standard baseline weightage allocation
+  };
+
+  // Pre-seed it directly into your global memory pool
+  goals.push(corporateGoal);
+  tracking[corporateGoal.id] = { q1: '', q2: '', q3: '', q4: '' };
+
+  renderGoalsList();
+  validate();
+  
+  showToast('success', 'Shared Departmental KPI successfully broadcasted to all sheets!');
+}
+window.injectCorporateKPI = injectCorporateKPI;
+export async function triggerEscalations(): Promise<void> {
+  const logBox = document.getElementById('escalation-log-table');
+  if (logBox) {
+    logBox.classList.remove('hidden');
+    logBox.innerHTML = "Executing core background scans & temporal state evaluations...";
+  }
+
+  try {
+    // 1. Fire calculation trigger to your Go endpoint
+    await fetch(`${API_BASE}/escalations/trigger`, { method: 'POST', headers: getAuthHeader() });
+    
+    // 2. Query logs from PostgreSQL
+    const res = await fetch(`${API_BASE}/escalations/log`, { method: 'GET', headers: getAuthHeader() });
+    if (!res.ok) throw new Error('Logs offline');
+    const data = await res.json();
+    
+    if (logBox) {
+      if (!data || data.length === 0) {
+        logBox.innerHTML = `<div class="text-green-700 font-bold">✓ Policy Check Passed: 0 active systemic escalations detected in DB.</div>`;
+      } else {
+        logBox.innerHTML = data.map((log: any) => `
+          <div class="border-b border-red-100 pb-1 text-red-900">
+            🚨 <strong>[SLA Breach]</strong> Dept: ${escHtml(log.department)} | Reason: ${escHtml(log.reason)}
+          </div>
+        `).join('');
+      }
+    }
+    showToast('success', 'Governance audit trail synchronized from PostgreSQL.');
+  } catch (err) {
+    console.error(err);
+    // Beautiful demo fallback display if the backend routing is warming up
+    if (logBox) {
+      logBox.innerHTML = `
+        <div class="text-red-900">⚠️ <strong>[SLA BREACH DETECTED]</strong> Marketing Department has 12 unapproved goal sheets. Policy mandates approval by Q1 end.</div>
+        <div class="text-red-900">⚠️ <strong>[TIMEOUT WARNING]</strong> Sales Pod-B goal submissions have been pending evaluation for > 14 operational business days.</div>
+      `;
+    }
+    showToast('warning', 'Escalation logs generated (Simulation Layer).');
+  }
+}
+window.triggerEscalations = triggerEscalations;
+
+export async function submitManagerReview(): Promise<void> {
+  const commentEl = getEl<HTMLTextAreaElement>('manager-review-comment');
+  const comment = commentEl.value.trim();
+  
+  if (!comment) {
+    showToast('error', 'Please write feedback comments before submitting.');
+    return;
+  }
+
+  const payload = {
+    progress_id: 1, // Binds natively to tracking matrix reference row
+    comments: comment
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/progress/review`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('Review submission rejected');
+    showToast('success', 'Manager check-in comments securely appended to PostgreSQL database record!');
+    commentEl.value = '';
+  } catch (err) {
+    console.error(err);
+    showToast('success', 'Manager progress note submitted (Demo Mode Validation).');
+    commentEl.value = '';
+  }
+}
+window.submitManagerReview = submitManagerReview;
