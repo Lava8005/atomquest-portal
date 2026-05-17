@@ -7,7 +7,8 @@ Objective Core is a high-performance, full-stack Goal Setting and Performance Tr
 * **Demo Credentials:** Simply click "Log in with Microsoft SSO" for the demo flow.
 
 ## 🏗️ System Architecture
-*(Upload your diagram image to GitHub and replace this text with: `![Architecture](./architecture.png)`)*
+<img width="707" height="851" alt="architecture-atom" src="https://github.com/user-attachments/assets/5ca3910a-e4a4-4efa-be26-ec6dad10ff30" />
+
 
 ### The Tech Stack
 We bypassed standard student stacks (Node/Express) to build a highly optimized, enterprise-grade architecture:
