@@ -19,13 +19,13 @@
           },
           colors: {
             brand: {
-              bg:       '#F4F5F7', /* Jira app background */
-              surface:  '#FFFFFF', /* Card background */
-              primary:  '#0052CC', /* Classic Jira Blue */
+              bg:       '#F4F5F7',
+              surface:  '#FFFFFF',
+              primary:  '#0052CC',
               hover:    '#0065FF',
-              text:     '#172B4D', /* Deep navy/gray text */
-              subtext:  '#5E6C84', /* Muted text */
-              border:   '#DFE1E6', /* Light gray borders */
+              text:     '#172B4D',
+              subtext:  '#5E6C84',
+              border:   '#DFE1E6',
               success:  '#00875A',
               warning:  '#FF991F',
               danger:   '#DE350B',
@@ -175,12 +175,24 @@
     <div class="bg-brand-surface shadow-card rounded-lg p-10 max-w-md w-full border border-brand-border text-center">
       <div class="w-12 h-12 rounded bg-brand-primary flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">O</div>
       <h1 class="font-bold text-brand-text text-2xl mb-2">Objective Core</h1>
-      <p class="text-brand-subtext text-sm mb-8">Enterprise Goal & Performance Tracking</p>
+      <p class="text-brand-subtext text-sm mb-6">Enterprise Goal Tracking Portal</p>
       
-      <button id="sso-login-btn-main" class="btn-primary w-full py-3 text-base flex justify-center items-center gap-2">
-        Log in with Microsoft SSO
+      <div class="text-left text-xs font-bold text-brand-subtext uppercase tracking-wide mb-3">Demo Environments</div>
+      
+      <button onclick="simulateSSO('Employee')" class="btn-secondary w-full py-3 mb-3 text-sm flex justify-between items-center px-4 hover:bg-blue-50 border border-gray-200">
+        <span>Arjun Kumar</span>
+        <span class="tag bg-gray-200 text-gray-600">Employee</span>
       </button>
-      <p class="text-xs text-brand-subtext mt-6">Authorized personnel only.</p>
+      
+      <button onclick="simulateSSO('Manager')" class="btn-secondary w-full py-3 mb-3 text-sm flex justify-between items-center px-4 hover:bg-blue-50 border border-gray-200">
+        <span>R. Sharma</span>
+        <span class="tag bg-blue-100 text-brand-primary">Manager</span>
+      </button>
+
+      <button onclick="simulateSSO('Admin')" class="btn-secondary w-full py-3 text-sm flex justify-between items-center px-4 hover:bg-blue-50 border border-gray-200">
+        <span>System Admin</span>
+        <span class="tag bg-purple-100 text-purple-700">HR / Admin</span>
+      </button>
     </div>
   </div>
 
@@ -198,7 +210,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-          <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-brand-primary font-bold text-sm">AK</div>
+          <div id="user-avatar-initials" class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-brand-primary font-bold text-sm">AK</div>
         </div>
       </div>
     </header>
@@ -232,7 +244,7 @@
         </div>
       </div>
 
-      <div class="flex border-b border-brand-border mb-6">
+      <div id="phase-tabs-container" class="flex border-b border-brand-border mb-6">
         <div class="phase-tab active" id="tab-phase1" onclick="switchTab('phase1')">Phase 1: Goal Sheet</div>
         <div class="phase-tab" id="tab-phase2" onclick="switchTab('phase2')">Phase 2: Check-ins</div>
       </div>
@@ -377,7 +389,44 @@
           </div>
         </div>
       </div>
+      
+      <div id="panel-manager" class="hidden">
+        <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 overflow-hidden mb-6">
+          <div class="px-6 py-4 border-b border-brand-border bg-gray-50/50 flex justify-between items-center">
+            <h3 class="font-bold text-brand-text">Manager Action Center: Pending Approvals</h3>
+            <button onclick="loadManagerData()" class="btn-secondary text-xs">↻ Refresh List</button>
+          </div>
+          
+          <div class="p-6">
+            <table class="p2-table w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th>Employee</th>
+                  <th>Department</th>
+                  <th>Goals Submitted</th>
+                  <th>Total Weight</th>
+                  <th>Status</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="manager-pending-list">
+                <tr><td colspan="6" class="text-center py-8 text-brand-subtext">Click Refresh to load data from server...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
+      <div id="panel-admin" class="hidden">
+        <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 p-6 mb-6">
+          <h3 class="font-bold text-brand-text mb-4 text-lg">System Analytics & Escalations</h3>
+          <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md mb-6">
+            <h4 class="text-red-700 font-bold text-sm">Escalation Triggered</h4>
+            <p class="text-red-600 text-sm mt-1">Marketing Department has 12 unapproved goal sheets. Policy mandates approval by Q1 end.</p>
+          </div>
+          <button class="btn-primary" onclick="showToast('info', 'Executing API Call to /analytics...')">Generate Company JSON Report</button>
+        </div>
+      </div>
     </main>
   </div>
 

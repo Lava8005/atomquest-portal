@@ -21,12 +21,14 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB) {
 	// Phase 1: Goal Setting (Protected endpoints)
 	goals := v1.Group("/goals", middleware.Protect())
 
-	// Route: POST /api/v1/goals/sheet (Already exists)
+	// Route: POST /api/v1/goals/sheet (Employee submits)
 	goals.Post("/sheet", middleware.RequireRoles("Employee"), handlers.CreateGoalSheet(db))
 
-	// Route: PUT /api/v1/goals/sheet/:id/approve (NEW)
-	// Guarantees only managers/admins can approve or modify subordinate sheets
-	goals.Put("/sheet/:id/approve", middleware.RequireRoles("Manager", "Admin"), handlers.ApproveGoalSheet(db))
+	// Route: GET /api/v1/goals/pending (Manager fetches real DB rows)
+	goals.Get("/pending", middleware.RequireRoles("Manager", "Admin"), handlers.GetPendingGoalSheets(db))
+
+	// Route: PUT /api/v1/goals/sheet/:id/approve (Manager updates DB row)
+	goals.Put("/sheet/:id/approve", middleware.RequireRoles("Manager", "Admin"), handlers.ManagerApproveGoalSheet(db))
 	// Phase 2: Progress Tracking & Check-ins
 	progress := v1.Group("/progress", middleware.Protect())
 
