@@ -37,7 +37,7 @@ type ToastType = 'success' | 'error' | 'info';
 
 const MAX_GOALS   = 8;
 const MIN_WEIGHT  = 10;
-const API_BASE = 'http://localhost:8081/api/v1;
+const API_BASE = 'https://atomquest-portal-w7cw.onrender.com/api/v1';
 
 const UOM_COLORS: Record<string, { bg: string; color: string }> = {
   'Numeric':    { bg: 'rgba(96,165,250,0.12)',  color: '#60A5FA' },
@@ -79,11 +79,13 @@ function getTotalWeight(): number {
 }
 
 // Get the token safely from LocalStorage
-function getAuthHeader(): { 'Content-Type': string; 'Authorization': string } {
+function getAuthHeader(): { 'Content-Type': string; 'Authorization': string; 'X-Demo-Role': string } {
   const token = localStorage.getItem('jwt_token') || 'demo_sso_jwt_token_987654321';
+  const role = localStorage.getItem('user_role') || 'Employee'; // Grab the button clicked
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${token}`,
+    'X-Demo-Role': role // Send it to Go
   };
 }
 
@@ -530,10 +532,6 @@ export function simulateSSO(role: 'Employee' | 'Manager' | 'Admin'): void {
 // REAL MANAGER FUNCTIONS (WIRED TO GO API)
 // ================================================================
 
-// ================================================================
-// REAL MANAGER FUNCTIONS (WIRED TO GO API)
-// ================================================================
-
 export async function loadManagerData(): Promise<void> {
   const tbody = document.getElementById('manager-pending-list');
   if (!tbody) return;
@@ -619,6 +617,39 @@ export async function approveSheet(sheetId: number): Promise<void> {
   }
 }
 // ================================================================
+// ADMIN FUNCTIONS (WIRED TO GO API)
+// ================================================================
+
+export async function generateReport(): Promise<void> {
+  const out = document.getElementById('admin-report-output');
+  if (out) {
+    out.classList.remove('hidden');
+    out.textContent = "Fetching enterprise analytics from PostgreSQL...";
+  }
+
+  try {
+    // Hits the exact route you built in router.go
+    const res = await fetch(`${API_BASE}/analytics/dashboard`, {
+      method: 'GET',
+      headers: getAuthHeader(),
+    });
+
+    if (!res.ok) throw new Error('Failed to fetch analytics');
+    const data = await res.json();
+    
+    // Prints the JSON beautifully into the black box
+    if (out) {
+      out.textContent = JSON.stringify(data, null, 2);
+    }
+    showToast('success', 'Enterprise Analytics Generated Successfully!');
+    
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Failed to generate report.');
+    if (out) out.textContent = "Error: Could not reach Go backend.";
+  }
+}
+// ================================================================
 // EXPOSE FUNCTIONS TO GLOBAL SCOPE
 // ================================================================
 
@@ -635,6 +666,7 @@ declare global {
     simulateSSO:     typeof simulateSSO; 
     loadManagerData: typeof loadManagerData;
     approveSheet:    typeof approveSheet;
+    generateReport: typeof generateReport;
   }
 }
 
@@ -649,7 +681,7 @@ window.showToast      = showToast;
 window.simulateSSO    = simulateSSO; // Exposed to window
 window.loadManagerData = loadManagerData;
 window.approveSheet    = approveSheet;
-
+window.generateReport = generateReport;
 // ================================================================
 // BOOT
 // ================================================================

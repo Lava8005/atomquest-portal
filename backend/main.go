@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"atomquest-portal/pkg/api" // Injects our new API router
+	"atomquest-portal/pkg/api"
 	"atomquest-portal/pkg/db"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,7 +24,7 @@ func main() {
 	database := db.InitDB(dsn)
 	defer database.Close()
 
-	// 2. Instantiate our Fiber application engine with extreme custom tuning parameters
+	// 2. Instantiate our Fiber application engine
 	app := fiber.New(fiber.Config{
 		AppName:      "AtomQuest Goal Portal v1.0",
 		ServerHeader: "Go-Fiber Engine",
@@ -36,15 +36,19 @@ func main() {
 			})
 		},
 	})
+
+	// --- THE SINGLE, CORRECT CORS BLOCK ---
+	// This explicitly allows the preflight OPTIONS request and your custom X-Demo-Role header
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*", // Allows any frontend to connect
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST, PUT, DELETE",
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-Demo-Role",
+		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
+	// --------------------------------------
 
 	// 3. Mount standard global architectural middleware
-	app.Use(recover.New()) // Recovers from runtime panics without crashing the entire system
-	app.Use(logger.New())  // High-visibility logging format for debugging routes
+	app.Use(recover.New())
+	app.Use(logger.New())
 
 	// 4. Base Health-Check Route
 	app.Get("/health", func(c *fiber.Ctx) error {

@@ -71,7 +71,14 @@ func Protect() fiber.Handler {
 		// If it's our fake SSO token, bypass security and inject Arjun Kumar's User ID (1)
 		if tokenString == "demo_sso_jwt_token_987654321" {
 			c.Locals("user_id", 1)
-			c.Locals("role", "Employee")
+
+			// Read the role sent by the frontend buttons!
+			demoRole := c.Get("X-Demo-Role")
+			if demoRole == "" {
+				demoRole = "Employee"
+			}
+
+			c.Locals("role", demoRole)
 			return c.Next()
 		}
 

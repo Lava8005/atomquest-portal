@@ -418,15 +418,18 @@
       </div>
 
       <div id="panel-admin" class="hidden">
-        <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 p-6 mb-6">
-          <h3 class="font-bold text-brand-text mb-4 text-lg">System Analytics & Escalations</h3>
-          <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md mb-6">
-            <h4 class="text-red-700 font-bold text-sm">Escalation Triggered</h4>
-            <p class="text-red-600 text-sm mt-1">Marketing Department has 12 unapproved goal sheets. Policy mandates approval by Q1 end.</p>
+          <div class="bg-brand-surface shadow-card rounded-md border border-brand-border/50 p-6 mb-6">
+            <h3 class="font-bold text-brand-text mb-4 text-lg">System Analytics & Escalations</h3>
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md mb-6">
+              <h4 class="text-red-700 font-bold text-sm">Escalation Triggered</h4>
+              <p class="text-red-600 text-sm mt-1">Marketing Department has 12 unapproved goal sheets. Policy mandates approval by Q1 end.</p>
+            </div>
+            
+            <button class="btn-primary" onclick="generateReport()">Generate Company JSON Report</button>
+            
+            <pre id="admin-report-output" class="hidden mt-4 p-4 bg-gray-900 text-green-400 text-xs rounded-md overflow-x-auto font-mono shadow-inner border border-gray-700"></pre>
           </div>
-          <button class="btn-primary" onclick="showToast('info', 'Executing API Call to /analytics...')">Generate Company JSON Report</button>
         </div>
-      </div>
     </main>
   </div>
 
