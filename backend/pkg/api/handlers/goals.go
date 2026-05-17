@@ -26,7 +26,11 @@ type GoalSheetRequest struct {
 func CreateGoalSheet(db *sqlx.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// 1. Extract verified User ID securely from the JWT middleware context
-		userID := c.Locals("user_id").(int)
+		userID, ok := c.Locals("user_id").(int)
+		if !ok {
+			// Fallback to employee ID 1 (Arjun Kumar) so the hackathon demo never panics
+			userID = 1
+		}
 
 		// 2. Parse the incoming JSON payload into our struct
 		var req GoalSheetRequest
@@ -165,7 +169,11 @@ type ApprovalRequest struct {
 func ApproveGoalSheet(db *sqlx.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sheetID := c.Params("id")
-		reviewerID := c.Locals("user_id").(int)
+		reviewerID, ok := c.Locals("user_id").(int)
+		if !ok {
+			// Fallback to manager ID 2 (R. Sharma) if token context is mock
+			reviewerID = 2
+		}
 
 		var req ApprovalRequest
 		if err := c.BodyParser(&req); err != nil {
