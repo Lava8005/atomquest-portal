@@ -41,8 +41,8 @@ func main() {
 	// This explicitly allows the preflight OPTIONS request and your custom X-Demo-Role header
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-Demo-Role",
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+		AllowHeaders: "*",
+		AllowMethods: "*",
 	}))
 	// --------------------------------------
 
