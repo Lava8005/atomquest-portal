@@ -38,7 +38,7 @@ type ToastType = 'success' | 'error' | 'info';
 
 const MAX_GOALS   = 8;
 const MIN_WEIGHT  = 10;
-const API_BASE    = 'https://atomquest-portal-w7cw.onrender.com';
+const API_BASE = 'https://atomquest-portal-w7cw.onrender.com/api/v1';
 
 const UOM_COLORS: Record<string, { bg: string; color: string }> = {
   'Numeric':    { bg: 'rgba(96,165,250,0.12)',  color: '#60A5FA' },
