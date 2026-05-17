@@ -64,7 +64,7 @@ func CreateGoalSheet(db *sqlx.DB) fiber.Handler {
 		var sheetID int
 		err = tx.QueryRowx(`
 			INSERT INTO goal_sheets (user_id, cycle_id, status)
-			VALUES ($1, $2, 'Pending Approval')
+			VALUES ($1, $2, 'PENDING') -- Changed from 'Pending Approval' to 'PENDING'
 			RETURNING id
 		`, userID, req.CycleID).Scan(&sheetID)
 
