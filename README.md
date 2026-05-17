@@ -5,7 +5,6 @@
 
 🔗 **[Live Demo → atomquest-portal-eight.vercel.app](https://atomquest-portal-eight.vercel.app)**
 
-![Architecture](./architecture-atom.jpg)
 
 </div>
 
