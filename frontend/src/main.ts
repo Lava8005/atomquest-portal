@@ -315,9 +315,16 @@ export async function submitGoals(): Promise<void> {
       body:    JSON.stringify(payload),
     });
     
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // --- UPDATED ERROR LOGGING ---
+    if (!res.ok) {
+      const errorPayload = await res.json().catch(() => ({}));
+      console.error("❌ GO BACKEND ERROR DETAILS:", errorPayload);
+      
+      showToast('error', `Server Error: ${errorPayload.error || 'Check Console'}`);
+      return;
+    }
+    // ------------------------------
 
-    
     showToast('success', 'Goal sheet submitted successfully!');
     lockSubmitButton();
     setTimeout(() => switchTab('phase2'), 800);
