@@ -71,13 +71,15 @@ func CreateGoalSheet(db *sqlx.DB) fiber.Handler {
 
 		defer tx.Rollback()
 
-		// 5. Insert the parent Goal Sheet record and retrieve its generated ID
+		// 5. Insert or Update the parent Goal Sheet record (Idempotent UPSERT)
 		var sheetID int
 		err = tx.QueryRowx(`
-			INSERT INTO goal_sheets (user_id, cycle_id, status)
-			VALUES ($1, $2, 'PENDING') 
-			RETURNING id
-		`, userID, req.CycleID).Scan(&sheetID)
+            INSERT INTO goal_sheets (user_id, cycle_id, status)
+            VALUES ($1, $2, 'PENDING') 
+            ON CONFLICT (user_id, cycle_id) 
+            DO UPDATE SET status = 'PENDING'
+            RETURNING id
+        `, userID, req.CycleID).Scan(&sheetID)
 
 		if err != nil {
 			// Built-in print requires no imports and writes straight to stdout
@@ -89,7 +91,6 @@ func CreateGoalSheet(db *sqlx.DB) fiber.Handler {
 				"details": err.Error(),
 			})
 		}
-
 		// 6. Prepare the statement for batch inserting individual goals efficiently
 		stmt, err := tx.Preparex(`
 			INSERT INTO goals (sheet_id, thrust_area, title, uom, target_value, weightage)
