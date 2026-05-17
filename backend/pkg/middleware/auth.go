@@ -55,6 +55,7 @@ func GenerateToken(userID int, role string) (string, error) {
 // ------------------------------------------------------------------------
 
 // Protect ensures the request contains a valid JWT in the Authorization header
+// Protect ensures the request contains a valid JWT in the Authorization header
 func Protect() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
@@ -68,7 +69,7 @@ func Protect() fiber.Handler {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// --- HACKATHON DEMO BYPASS ---
-		// We use HasPrefix so it matches our smuggled token format
+		// FIX: Use HasPrefix so it catches the smuggled "---Role" tag!
 		if strings.HasPrefix(tokenString, "demo_sso_jwt_token_987654321") {
 			c.Locals("user_id", 1)
 
