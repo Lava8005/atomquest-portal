@@ -523,6 +523,10 @@ export function simulateSSO(role: 'Employee' | 'Manager' | 'Admin'): void {
 // REAL MANAGER FUNCTIONS (WIRED TO GO API)
 // ================================================================
 
+// ================================================================
+// REAL MANAGER FUNCTIONS (WIRED TO GO API)
+// ================================================================
+
 export async function loadManagerData(): Promise<void> {
   const tbody = document.getElementById('manager-pending-list');
   if (!tbody) return;
@@ -530,16 +534,16 @@ export async function loadManagerData(): Promise<void> {
   tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-brand-subtext">Loading from Go server...</td></tr>`;
 
   try {
-    // 1. Fetch pending sheets from your Go API
-    const res = await fetch(`${API_BASE}/manager/pending`, {
+    // FIX: Changed route from /manager/pending to /goals/pending
+    const res = await fetch(`${API_BASE}/goals/pending`, {
       method: 'GET',
       headers: getAuthHeader(),
     });
 
     if (!res.ok) throw new Error('Failed to fetch manager data');
-    
-    // Assuming your Go server returns an array of sheets: [{ id: 1, employee_name: 'Arjun', goal_count: 4, ... }]
     const data = await res.json();
+    
+  
     
     if (!data || data.length === 0) {
       tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-brand-subtext">No pending approvals at this time.</td></tr>`;
@@ -588,18 +592,15 @@ export async function approveSheet(sheetId: number): Promise<void> {
   try {
     showToast('info', `Sending approval for Sheet #${sheetId}...`);
     
-    // 1. Send the approval POST request to your Go backend
-    const res = await fetch(`${API_BASE}/manager/approve`, {
-      method: 'POST',
+    // FIX: Target your explicit PUT route: /api/v1/goals/sheet/:id/approve
+    const res = await fetch(`${API_BASE}/goals/sheet/${sheetId}/approve`, {
+      method: 'PUT',
       headers: getAuthHeader(),
-      body: JSON.stringify({ sheet_id: sheetId, status: 'APPROVED' })
+      body: JSON.stringify({ status: 'Approved' }) // Matches your Go string check ("Approved" or "Rework")
     });
 
     if (!res.ok) throw new Error('Failed to approve sheet');
-
     showToast('success', `Sheet #${sheetId} officially approved!`);
-    
-    // 2. Refresh the list to remove the approved sheet
     loadManagerData();
     
   } catch (err) {

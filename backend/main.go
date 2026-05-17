@@ -45,10 +45,6 @@ func main() {
 	// 3. Mount standard global architectural middleware
 	app.Use(recover.New()) // Recovers from runtime panics without crashing the entire system
 	app.Use(logger.New())  // High-visibility logging format for debugging routes
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*", // Completely open cross-origin rules for seamless frontend consumption
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-	}))
 
 	// 4. Base Health-Check Route
 	app.Get("/health", func(c *fiber.Ctx) error {
