@@ -68,14 +68,15 @@ func Protect() fiber.Handler {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// --- HACKATHON DEMO BYPASS ---
-		// If it's our fake SSO token, bypass security and inject Arjun Kumar's User ID (1)
-		if tokenString == "demo_sso_jwt_token_987654321" {
+		// We use HasPrefix so it matches our smuggled token format
+		if strings.HasPrefix(tokenString, "demo_sso_jwt_token_987654321") {
 			c.Locals("user_id", 1)
 
-			// Read the role sent by the frontend buttons!
-			demoRole := c.Get("X-Demo-Role")
-			if demoRole == "" {
-				demoRole = "Employee"
+			// Split the string to extract the smuggled role (e.g., "token---Manager")
+			parts := strings.Split(tokenString, "---")
+			demoRole := "Employee" // Fallback
+			if len(parts) == 2 {
+				demoRole = parts[1]
 			}
 
 			c.Locals("role", demoRole)

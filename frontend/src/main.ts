@@ -79,13 +79,14 @@ function getTotalWeight(): number {
 }
 
 // Get the token safely from LocalStorage
-function getAuthHeader(): { 'Content-Type': string; 'Authorization': string; 'X-Demo-Role': string } {
+function getAuthHeader(): { 'Content-Type': string; 'Authorization': string } {
   const token = localStorage.getItem('jwt_token') || 'demo_sso_jwt_token_987654321';
-  const role = localStorage.getItem('user_role') || 'Employee'; // Grab the button clicked
+  const role = localStorage.getItem('user_role') || 'Employee'; 
+  
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    'X-Demo-Role': role // Send it to Go
+    // We attach the role to the end of the token with a "---" separator
+    'Authorization': `Bearer ${token}---${role}` 
   };
 }
 
