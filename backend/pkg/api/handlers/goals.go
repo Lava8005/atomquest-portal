@@ -69,6 +69,9 @@ func CreateGoalSheet(db *sqlx.DB) fiber.Handler {
 		`, userID, req.CycleID).Scan(&sheetID)
 
 		if err != nil {
+			// Built-in print requires no imports and writes straight to stdout
+			println("🚨 CRITICAL DATABASE ERROR:", err.Error())
+
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"success": false,
 				"error":   "Failed to generate parent goal sheet",
