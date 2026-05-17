@@ -78,14 +78,14 @@ function getTotalWeight(): number {
   return goals.reduce((sum, g) => sum + g.weight, 0);
 }
 
-// Get the token safely from LocalStorage
+
 function getAuthHeader(): { 'Content-Type': string; 'Authorization': string } {
-  const token = localStorage.getItem('jwt_token') || 'demo_sso_jwt_token_987654321';
+  // FIX: Hardcode the demo token so old browser cache doesn't corrupt it
+  const token = 'demo_sso_jwt_token_987654321'; 
   const role = localStorage.getItem('user_role') || 'Employee'; 
   
   return {
     'Content-Type': 'application/json',
-    // We attach the role to the end of the token with a "---" separator
     'Authorization': `Bearer ${token}---${role}` 
   };
 }
