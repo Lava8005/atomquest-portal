@@ -72,6 +72,7 @@ func CreateGoalSheet(db *sqlx.DB) fiber.Handler {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"success": false,
 				"error":   "Failed to generate parent goal sheet",
+				"details": err.Error(),
 			})
 		}
 
