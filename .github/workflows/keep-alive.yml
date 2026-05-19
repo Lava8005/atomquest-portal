@@ -1,0 +1,11 @@
+name: Prevent Render Cold Start
+on:
+  schedule:
+    - cron: "*/10 * * * *" # Runs every 10 minutes
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Go Fiber API
+        run: curl -s https://atomquest-portal-w7cw.onrender.com/api/v1/escalations/log > /dev/null
